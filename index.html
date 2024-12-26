@@ -1,0 +1,116 @@
+=<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Scoreboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Game Scoreboard</h2>
+        <form id="addPlayerForm">
+            <input type="text" id="playerName" placeholder="Enter player name" required>
+            <button type="submit">Add Player</button>
+        </form>
+        <h3>Players</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Score</th>
+                    <th>Update Score</th>
+                </tr>
+            </thead>
+            <tbody id="playerList">
+                <!-- Players will be added dynamically -->
+            </tbody>
+        </table>
+        <h3>Live Rankings</h3>
+        <div id="rankings">
+            <!-- Rankings will be updated dynamically -->
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Add player form submission
+            $('#addPlayerForm').on('submit', function(e) {
+                e.preventDefault();
+                const playerName = $('#playerName').val().trim();
+                if (playerName) {
+                    $.post('backend.php', { action: 'addPlayer', name: playerName }, function(data) {
+                        $('#playerName').val('');
+                        updatePlayerList();
+                    });
+                }
+            });
+
+            // Update player score
+            $(document).on('click', '.updateScore', function() {
+                const playerId = $(this).data('id');
+                const score = prompt('Enter new score:');
+                if (score !== null && !isNaN(score)) {
+                    $.post('backend.php', { action: 'updateScore', id: playerId, score: score }, function(data) {
+                        updatePlayerList();
+                    });
+                }
+            });
+
+            // Fetch and update player list
+            function updatePlayerList() {
+                $.get('backend.php', { action: 'getPlayers' }, function(data) {
+                    const players = JSON.parse(data);
+                    const playerRows = players.map(player => `
+                        <tr>
+                            <td>${player.name}</td>
+                            <td>${player.score}</td>
+                            <td><button class="updateScore" data-id="${player.id}">Update</button></td>
+                        </tr>
+                    `).join('');
+                    $('#playerList').html(playerRows);
+                    updateRankings(players);
+                });
+            }
+
+            // Update live rankings
+            function updateRankings(players) {
+                players.sort((a, b) => a.score - b.score);
+                const rankings = players.map((player, index) => `<p>${index + 1}. ${player.name} - ${player.score}</p>`).join('');
+                $('#rankings').html(rankings);
+            }
+
+            // Initial load
+            updatePlayerList();
+        });
+    </script>
+</body>
+</html>
+
